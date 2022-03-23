@@ -1,0 +1,210 @@
+JAVA PROJECT : -
+===============
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Aim : Creating a web application that displays Covid19 data in accordance with a particular JDBC query.The data if fetched from a .csv file into the postgreSQL database.
+	The resulting data is displayed on a web page using jsp.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1. pom.xml : -
+------------------
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.sampleproject</groupId>
+  <artifactId>Covid19</artifactId>
+  <packaging>war</packaging>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>Covid19 Maven Webapp</name>
+  <url>http://maven.apache.org</url>
+  <dependencies>
+  
+  <dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.2.5</version>
+	</dependency>
+  
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context</artifactId>
+    <version>5.2.9.RELEASE</version>
+	</dependency>
+	
+	<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-webmvc</artifactId>
+    <version>5.2.9.RELEASE</version>
+	</dependency>
+	
+
+  </dependencies>
+  <build>
+    <finalName>Covid19</finalName>
+  </build>
+</project>
+
+
+2. web.xml : -
+-----------------
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+  <display-name>Archetype Created Web Application</display-name>
+  
+  <servlet>
+  	
+  		<servlet-name>Operations</servlet-name>
+  		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+  
+  </servlet>
+  
+  <servlet-mapping>
+  	
+  	<servlet-name>Operations</servlet-name>
+  	<url-pattern>/</url-pattern>
+  	
+  </servlet-mapping>
+</web-app>
+
+3. Operations-servlet.xml : -
+-------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<beans xmlns="http://www.springframework.org/schema/beans"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"   
+    xmlns:context="http://www.springframework.org/schema/context"  
+    xmlns:mvc="http://www.springframework.org/schema/mvc" 
+    xmlns:ctx="http://www.springframework.org/schema/context" 
+    xsi:schemaLocation="  
+        http://www.springframework.org/schema/beans  
+        http://www.springframework.org/schema/beans/spring-beans.xsd  
+        http://www.springframework.org/schema/context  
+        http://www.springframework.org/schema/context/spring-context.xsd  
+        http://www.springframework.org/schema/mvc  
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">  
+  
+
+    <!-- Provide support for component scanning -->  
+    <ctx:annotation-config></ctx:annotation-config>
+    <context:component-scan base-package="com.acts.covid"></context:component-scan>  
+  
+    <!--Provide support for conversion, formatting and validation -->  
+    <mvc:annotation-driven/>  
+  
+</beans>
+
+4. ControllerEx Class : - //This is the controller class
+--------------------------------------------------------------------
+package com.acts.covid;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+
+@Controller //Declaring this class as the controller (Front Controller)
+public class ControllerEx {
+
+	public static Connection createConnection() throws ClassNotFoundException, SQLException //Function to create JDBC connection
+	{
+		Class.forName("org.postgresql.Driver");
+		
+		   
+		Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost/sample_project", "postgres", "abc123");
+			
+	   
+		Statement s1 = conn.createStatement();
+		
+		return conn;
+	}
+	
+	
+	
+	
+	@RequestMapping("/Ops") //Mapping Request from the index file in the Controller Class
+	public ModelAndView ops(HttpServletRequest request, HttpServletResponse response) throws ClassNotFoundException, SQLException
+	{
+		
+			Connection conn = ControllerEx.createConnection();
+			
+			PreparedStatement ps1 =  conn.prepareStatement("select * from covid_data where new_cases>1000 order by new_cases");
+			
+			ResultSet rs = ps1.executeQuery();
+			
+			ModelAndView m1 = new ModelAndView();
+			
+			m1.setViewName("Display.jsp");
+			m1.addObject("resultset", rs);
+			
+		return m1;
+	}
+	
+}
+
+
+5. Display.jsp file : -
+--------------------------
+<%@ page import="java.sql.*" %>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1" isELIgnored="false"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+</head>
+<body>
+
+<%
+
+ResultSet rs = (ResultSet) request.getAttribute("resultset");
+%>
+
+<TABLE BORDER="1">
+            <TR>
+                <TH>Continent</TH>
+                <TH>Location</TH>
+                <TH>Total_Cases</TH>
+                <TH>New_Cases</TH>
+                <TH>Total_Deaths</TH>
+                <TH>Total_Tests</TH>
+                <TH>Positive_Rate</TH>
+                <TH>People_Vaccinated</TH>
+                <TH>Population</TH>
+            </TR>
+             <% while(rs.next()){ %>
+            <TR>
+                <TD> <%= rs.getString(1) %></td>
+                <TD> <%= rs.getString(2) %></TD>
+                 <TD> <%= rs.getString(3) %></TD>
+                <TD> <%= rs.getString(4) %></TD>
+                <TD> <%= rs.getString(5) %></TD>
+                <TD> <%= rs.getString(6) %></TD>
+                <TD> <%= rs.getString(7) %></TD>
+                <TD> <%= rs.getString(8) %></TD>
+                <TD> <%= rs.getString(9) %></TD>
+            </TR>
+            <% } %>
+        </TABLE>
+
+</body>
+</html>
